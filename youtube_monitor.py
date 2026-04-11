@@ -12,7 +12,10 @@ TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 LAST_VIDEO_FILE = "last_video.json"
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(
+    api_key=OPENAI_API_KEY,
+    base_url="https://api.deepseek.com"
+)
 
 def extract_video_id(entry):
     # Try multiple ways to get the video ID
@@ -105,7 +108,7 @@ Write a summary with:
 - Conclusions / recommendations if any
 """
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="deepseek-chat",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
