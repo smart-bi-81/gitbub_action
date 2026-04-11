@@ -76,12 +76,14 @@ def get_transcript(video_id):
     try:
         url = f"https://api.supadata.ai/v1/youtube/transcript"
         headers = {"x-api-key": os.environ["SUPADATA_API_KEY"]}
-        params = {"videoId": video_id, "lang": "he"}
+        params = {"videoId": video_id, "text": "true"}
         response = requests.get(url, headers=headers, params=params)
         data = response.json()
         print(f"Supadata response: {response.status_code}")
-        if response.status_code == 200 and "content" in data:
-            return " ".join([item["text"] for item in data["content"]])
+        if response.status_code == 200:
+            content = data.get("content", "")
+            print(f"Transcript length: {len(content)} chars")
+            return content
         else:
             print(f"Supadata error: {data}")
             return None
