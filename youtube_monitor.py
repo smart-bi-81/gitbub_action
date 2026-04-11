@@ -101,8 +101,10 @@ Transcript:
 
 Write a summary with:
 - Topic of the video
-- Main points (3-5 bullets)
+- Main points (5-7 bullets)
+- Stocks or tickers mentioned
 - Conclusions / recommendations if any
+- Overall market sentiment (bullish/bearish/neutral)
 """
     response = client.chat.completions.create(
         model="gpt-4o",
