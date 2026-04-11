@@ -5,8 +5,8 @@ import requests
 from youtube_transcript_api import YouTubeTranscriptApi
 from openai import OpenAI
 
-# הגדרות
-CHANNEL_ID = "UCxxxxxxxxxxxxxxxx"  # נמלא אחרי שנשלוף
+# Settings
+CHANNEL_ID = "UCSxjNbPriyBh9RNl_QNSAtw"
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
@@ -14,15 +14,51 @@ LAST_VIDEO_FILE = "last_video.json"
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-def get_latest_video():
+def extract_video_id(entry):
+    # Try multiple ways to get the video ID
+    # Method 1: yt_videoid attribute
+    if hasattr(entry, 'yt_videoid'):
+        return entry.yt_videoid
+    # Method 2: from the id field (yt:video:VIDEOID)
+    if 'id' in entry:
+        yt_id = entry.id
+        if 'yt:video:' in yt_id:
+            return yt_id.split('yt:video:')[-1]
+    # Method 3: from the link URL
+    link = entry.get('link', '')
+    if 'watch?v=' in link:
+        return link.split('watch?v=')[-1]
+    if '/shorts/' in link:
+        return link.split('/shorts/')[-1]
+    return None
+
+def get_latest_long_video():
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={CHANNEL_ID}"
     feed = feedparser.parse(url)
-    if feed.entries:
-        latest = feed.entries[0]
+    
+    print(f"Total entries found: {len(feed.entries)}")
+    
+    for entry in feed.entries:
+        link = entry.get('link', '')
+        title = entry.get('title', '')
+        video_id = extract_video_id(entry)
+        
+        print(f"Checking: {title} | link: {link} | id: {video_id}")
+        
+        # Skip Shorts
+        if '/shorts/' in link:
+            print(f"  -> Skipping (Short)")
+            continue
+        
+        if not video_id:
+            print(f"  -> Skipping (no video ID found)")
+            continue
+            
+        print(f"  -> Selected!")
         return {
-            "id": latest.yt_videoid,
-            "title": latest.title,
-            "url": f"https://www.youtube.com/watch?v={latest.yt_videoid}"
+            "id": video_id,
+            "title": title,
+            "url": link
         }
     return None
 
@@ -41,21 +77,21 @@ def get_transcript(video_id):
         transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["he", "iw"])
         return " ".join([t["text"] for t in transcript])
     except Exception as e:
-        print(f"שגיאה בתמלול: {e}")
+        print(f"Transcript error: {e}")
         return None
 
 def summarize(title, transcript):
-    prompt = f"""אתה עוזר פיננסי. סכם את הסרטון הבא בעברית בצורה ברורה וקצרה.
+    prompt = f"""You are a financial assistant. Summarize the following video in Hebrew, clearly and concisely.
 
-כותרת: {title}
+Title: {title}
 
-תמליל:
+Transcript:
 {transcript[:6000]}
 
-כתוב סיכום עם:
-- נושא הסרטון
-- הנקודות העיקריות (3-5 נקודות)
-- מסקנות / המלצות אם יש
+Write a summary with:
+- Topic of the video
+- Main points (3-5 bullets)
+- Conclusions / recommendations if any
 """
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -65,37 +101,39 @@ def summarize(title, transcript):
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    requests.post(url, json={
+    response = requests.post(url, json={
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
         "parse_mode": "Markdown"
     })
+    print(f"Telegram response: {response.status_code}")
 
 def main():
-    latest = get_latest_video()
+    latest = get_latest_long_video()
     if not latest:
-        print("לא נמצאו סרטונים")
+        print("No long videos found")
         return
+
+    print(f"Latest long video: {latest['title']}")
 
     last_seen = get_last_seen_video()
-    
+
     if last_seen and last_seen["id"] == latest["id"]:
-        print("אין סרטון חדש")
+        print("No new video")
         return
 
-    print(f"סרטון חדש: {latest['title']}")
-    
+    print(f"New video detected!")
+
     transcript = get_transcript(latest["id"])
-    
+
     if transcript:
         summary = summarize(latest["title"], transcript)
         message = f"🎬 *סרטון חדש מ-מיכה סטוקס*\n\n*{latest['title']}*\n{latest['url']}\n\n{summary}"
     else:
-        message = f"🎬 *סרטון חדש מ-מיכה סטוקס*\n\n*{latest['title']}*\n{latest['url']}\n\n⚠️ לא הצלחתי לשלוף תמלול"
-    
+        message = f"🎬 *סרטון חדש מ-מיכה סטוקס*\n\n*{latest['title']}*\n{latest['url']}\n\n⚠️ Could not fetch transcript"
+
     send_telegram(message)
     save_last_seen_video(latest)
-    print("הודעה נשלחה!")
+    print("Message sent!")
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__
