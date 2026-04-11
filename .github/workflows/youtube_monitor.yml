@@ -28,3 +28,11 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPEN_AI }}
           SUPADATA_API_KEY: ${{ secrets.SUPADATA_API_KEY }}
         run: python youtube_monitor.py
+
+      - name: Save last video ID
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add last_video.json
+          git diff --staged --quiet || git commit -m "Update last seen video"
+          git push
