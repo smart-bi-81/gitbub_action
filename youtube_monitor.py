@@ -74,9 +74,17 @@ def save_last_seen_video(video):
 
 def get_transcript(video_id):
     try:
-        ytt = YouTubeTranscriptApi()
-        transcript = ytt.fetch(video_id, languages=["he", "iw"])
-        return " ".join([t.text for t in transcript])
+        url = f"https://api.supadata.ai/v1/youtube/transcript"
+        headers = {"x-api-key": os.environ["SUPADATA_API_KEY"]}
+        params = {"videoId": video_id, "lang": "he"}
+        response = requests.get(url, headers=headers, params=params)
+        data = response.json()
+        print(f"Supadata response: {response.status_code}")
+        if response.status_code == 200 and "content" in data:
+            return " ".join([item["text"] for item in data["content"]])
+        else:
+            print(f"Supadata error: {data}")
+            return None
     except Exception as e:
         print(f"Transcript error: {e}")
         return None
