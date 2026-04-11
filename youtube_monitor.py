@@ -74,8 +74,9 @@ def save_last_seen_video(video):
 
 def get_transcript(video_id):
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["he", "iw"])
-        return " ".join([t["text"] for t in transcript])
+        ytt = YouTubeTranscriptApi()
+        transcript = ytt.fetch(video_id, languages=["he", "iw"])
+        return " ".join([t.text for t in transcript])
     except Exception as e:
         print(f"Transcript error: {e}")
         return None
