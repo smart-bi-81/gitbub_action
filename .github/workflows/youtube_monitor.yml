@@ -25,6 +25,6 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API }}
+          OPENAI_API_KEY: ${{ secrets.OPEN_AI }}
           SUPADATA_API_KEY: ${{ secrets.SUPADATA_API_KEY }}
         run: python youtube_monitor.py
