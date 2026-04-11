@@ -136,4 +136,5 @@ def main():
     save_last_seen_video(latest)
     print("Message sent!")
 
-if __name__ == "__
+if __name__ == "__main__":
+    main()
