@@ -1,0 +1,32 @@
+name: Transcribe Video
+
+on:
+  repository_dispatch:
+    types: [transcribe_video]
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests openai
+
+      - name: Run transcription
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPEN_AI }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          SUPADATA_API_KEY: ${{ secrets.SUPADATA_API_KEY }}
+          MESSAGE_TEXT: ${{ github.event.client_payload.message_text }}
+          CHAT_ID: ${{ github.event.client_payload.chat_id }}
+        run: python transcribe_video.py
