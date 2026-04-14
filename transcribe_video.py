@@ -91,7 +91,7 @@ def send_telegram(message):
     })
 
 def main():
-    print(f"Message received: {MESSAGE_TEXT}")
+    print(f"Video ID received: {VIDEO_ID}")
 
     video_id = VIDEO_ID
 
