@@ -9,7 +9,7 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_API_KEY = os.environ["SUPABASE_API_KEY"]
 SUPADATA_API_KEY = os.environ["SUPADATA_API_KEY"]
-MESSAGE_TEXT = os.environ["MESSAGE_TEXT"]
+VIDEO_ID = os.environ["VIDEO_ID"]
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -93,11 +93,7 @@ def send_telegram(message):
 def main():
     print(f"Message received: {MESSAGE_TEXT}")
 
-    video_id = extract_video_id(MESSAGE_TEXT)
-    if not video_id:
-        print("No video_id found in message")
-        send_telegram("❌ Could not find video ID in the message.")
-        return
+    video_id = VIDEO_ID
 
     print(f"Video ID: {video_id}")
     send_telegram(f"⏳ Fetching transcript for `{video_id}`...")
