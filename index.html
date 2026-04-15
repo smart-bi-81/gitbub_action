@@ -83,9 +83,9 @@
   .video-expanded-content { display: none; padding: 0 16px 16px; }
   .video-card.expanded .video-expanded-content { display: block; padding-top: 16px; border-top: 1px solid var(--border); }
   .summary-label { font-size: 10px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
-  .summary-text { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+  .summary-text { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; direction: rtl; text-align: right; }
   .summary-text strong { color: var(--accent); font-weight: 600; }
-  .transcript-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 10px; font-size: 12px; font-family: var(--font-mono); color: var(--muted); max-height: 200px; overflow-y: auto; line-height: 1.6; display: none; }
+  .transcript-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 10px; font-size: 12px; font-family: var(--font-mono); color: var(--muted); max-height: 200px; overflow-y: auto; line-height: 1.6; display: none; direction: rtl; text-align: right; }
   .transcript-box.visible { display: block; }
   .transcribe-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; max-width: 600px; }
   .input-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; display: block; }
@@ -240,6 +240,14 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function isHebrew(text) {
+  return /[\u0590-\u05FF]/.test(text || '');
+}
+
+function rtlAttr(text) {
+  return isHebrew(text) ? 'dir="rtl" style="text-align:right;"' : '';
+}
+
 function renderVideoCard(v) {
   const hasTranscript = !!v.transcript_text;
   const hasSummary = !!v.summary_text;
@@ -252,8 +260,8 @@ function renderVideoCard(v) {
         </div>
       </div>
       <div class="video-body">
-        <div class="video-channel">${v.channel_name || ''}</div>
-        <div class="video-title">${v.video_title || v.video_id}</div>
+        <div class="video-channel" ${rtlAttr(v.channel_name)}>${v.channel_name || ''}</div>
+        <div class="video-title" ${rtlAttr(v.video_title)}>${v.video_title || v.video_id}</div>
         <div class="video-meta">
           <span class="badge badge-${v.prompt_type || 'technology'}">${v.prompt_type || 'technology'}</span>
           <span class="badge ${hasTranscript ? 'badge-transcribed' : 'badge-pending'}">${hasTranscript ? 'transcribed' : 'pending'}</span>
