@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Intelligence Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f5;
+    --muted: #7070a0;
+    --accent: #6c63ff;
+    --accent2: #ff6b9d;
+    --green: #00e5a0;
+    --amber: #ffb347;
+    --red: #ff5c5c;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-display); min-height: 100vh; }
+
+  /* Layout */
+  .sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; z-index: 100; }
+  .main { margin-left: 220px; padding: 32px; min-height: 100vh; }
+
+  /* Sidebar */
+  .logo { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .logo-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 32px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 600; transition: all 0.15s; margin-bottom: 4px; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: white; }
+  .nav-icon { width: 18px; height: 18px; opacity: 0.8; }
+  .sidebar-footer { margin-top: auto; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* Pages */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .stat-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-value { font-size: 32px; font-weight: 800; }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.red { color: var(--red); }
+
+  /* Page header */
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+  .page-subtitle { color: var(--muted); font-size: 14px; font-family: var(--font-mono); }
+
+  /* Filters */
+  .filters { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--muted); font-size: 13px; font-family: var(--font-display); font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+  /* Video grid */
+  .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .video-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+  .video-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .video-card.expanded { grid-column: 1 / -1; }
+  .video-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .video-card-title { font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--text); flex: 1; }
+  .video-channel { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 8px; }
+  .video-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); }
+  .badge-market { background: rgba(108,99,255,0.15); color: var(--accent); border: 1px solid rgba(108,99,255,0.3); }
+  .badge-technology { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+  .badge-transcribed { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+  .badge-pending { background: rgba(255,179,71,0.1); color: var(--amber); border: 1px solid rgba(255,179,71,0.25); }
+  .video-date { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .video-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text); font-size: 12px; font-family: var(--font-display); font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-primary:hover { background: #7c75ff; border-color: #7c75ff; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Expanded card content */
+  .video-expanded-content { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: none; }
+  .video-card.expanded .video-expanded-content { display: block; }
+  .summary-text { font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+  .summary-text strong, .summary-text b { color: var(--accent); }
+  .transcript-toggle { margin-top: 12px; }
+  .transcript-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 10px; font-size: 12px; font-family: var(--font-mono); color: var(--muted); max-height: 200px; overflow-y: auto; line-height: 1.6; display: none; }
+  .transcript-box.visible { display: block; }
+
+  /* Transcribe page */
+  .transcribe-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; max-width: 600px; }
+  .input-group { margin-bottom: 20px; }
+  .input-label { font-size: 12px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+  .text-input { width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; padding: 12px 16px; color: var(--text); font-size: 14px; font-family: var(--font-mono); outline: none; transition: border-color 0.15s; }
+  .text-input:focus { border-color: var(--accent); }
+  .status-box { margin-top: 20px; padding: 16px; border-radius: 8px; font-size: 13px; font-family: var(--font-mono); display: none; }
+  .status-box.success { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.25); color: var(--green); display: block; }
+  .status-box.error { background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.25); color: var(--red); display: block; }
+  .status-box.loading { background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.25); color: var(--accent); display: block; }
+
+  /* Channels page */
+  .channels-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .channel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; }
+  .channel-card:hover { border-color: var(--border2); }
+  .channel-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .channel-count { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 12px; }
+  .channel-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .channel-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
+
+  /* Loading */
+  .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; padding: 40px 0; }
+  .empty-state { color: var(--muted); font-size: 14px; padding: 40px 0; text-align: center; font-family: var(--font-mono); }
+
+  /* Search */
+  .search-input { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 16px; color: var(--text); font-size: 14px; font-family: var(--font-display); outline: none; width: 280px; transition: border-color 0.15s; }
+  .search-input:focus { border-color: var(--accent); }
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; padding: 16px 8px; }
+    .nav-item span, .logo-sub, .logo, .sidebar-footer { display: none; }
+    .main { margin-left: 60px; padding: 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo">YI<span>.</span>Hub</div>
+  <div class="logo-sub">intelligence dashboard</div>
+  <div class="nav-item active" onclick="showPage('dashboard', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    <span>Dashboard</span>
+  </div>
+  <div class="nav-item" onclick="showPage('videos', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    <span>Videos</span>
+  </div>
+  <div class="nav-item" onclick="showPage('channels', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span>Channels</span>
+  </div>
+  <div class="nav-item" onclick="showPage('transcribe', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <span>Transcribe</span>
+  </div>
+  <div class="sidebar-footer">v2.0 · live</div>
+</nav>
+
+<main class="main">
+
+  <!-- Dashboard -->
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div class="page-title">Dashboard</div>
+      <div class="page-subtitle">real-time youtube intelligence</div>
+    </div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Videos</div><div class="stat-value accent" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">Transcribed</div><div class="stat-value green" id="stat-transcribed">—</div></div>
+      <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value amber" id="stat-pending">—</div></div>
+      <div class="stat-card"><div class="stat-label">Channels</div><div class="stat-value" id="stat-channels">—</div></div>
+    </div>
+    <div class="page-header" style="margin-top:8px;">
+      <div class="page-title" style="font-size:20px;">Recent Videos</div>
+    </div>
+    <div id="recent-videos" class="video-grid">
+      <div class="loading-state"><div class="loading-spinner"></div> Loading recent videos...</div>
+    </div>
+  </div>
+
+  <!-- Videos -->
+  <div id="page-videos" class="page">
+    <div class="page-header">
+      <div class="page-title">Video Library</div>
+      <div class="page-subtitle">all monitored videos</div>
+    </div>
+    <div class="toolbar">
+      <input type="text" class="search-input" placeholder="Search videos..." id="search-input" oninput="filterVideos()">
+      <div class="filters" id="filters" style="margin-bottom:0;">
+        <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+        <button class="filter-btn" onclick="setFilter('market', this)">Market</button>
+        <button class="filter-btn" onclick="setFilter('technology', this)">Technology</button>
+        <button class="filter-btn" onclick="setFilter('transcribed', this)">Transcribed</button>
+        <button class="filter-btn" onclick="setFilter('pending', this)">Pending</button>
+      </div>
+    </div>
+    <div id="videos-grid" class="video-grid">
+      <div class="loading-state"><div class="loading-spinner"></div> Loading videos...</div>
+    </div>
+  </div>
+
+  <!-- Channels -->
+  <div id="page-channels" class="page">
+    <div class="page-header">
+      <div class="page-title">Channels</div>
+      <div class="page-subtitle">monitored youtube channels</div>
+    </div>
+    <div id="channels-grid" class="channels-grid">
+      <div class="loading-state"><div class="loading-spinner"></div> Loading channels...</div>
+    </div>
+  </div>
+
+  <!-- Transcribe -->
+  <div id="page-transcribe" class="page">
+    <div class="page-header">
+      <div class="page-title">Transcribe</div>
+      <div class="page-subtitle">request video transcription</div>
+    </div>
+    <div class="transcribe-box">
+      <div class="input-group">
+        <label class="input-label">YouTube Video ID</label>
+        <input type="text" class="text-input" id="video-id-input" placeholder="e.g. dQw4w9WgXcQ">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Prompt Type</label>
+        <select class="text-input" id="prompt-type-select" style="cursor:pointer;">
+          <option value="technology">Technology</option>
+          <option value="market">Market / Finance</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="triggerTranscription()" id="transcribe-btn">Trigger Transcription</button>
+      <div id="transcribe-status" class="status-box"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const SUPABASE_URL = 'https://hqtqzhtwhijlycboerra.supabase.co';
+const SUPABASE_API_KEY = 'sb_secret_q25hXwCqGb6Tz-80_Bh_iQ_TZUU7ltO';
+const DISPATCH_TOKEN = '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';
+const REPO = 'smart-bi-81/gitbub_action';
+
+let allVideos = [];
+let currentFilter = 'all';
+
+async function supabaseFetch(path) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPABASE_API_KEY,
+      'Authorization': `Bearer ${SUPABASE_API_KEY}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return res.json();
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function renderVideoCard(v, expanded = false) {
+  const hasTranscript = !!v.transcript_text;
+  const hasSummary = !!v.summary_text;
+  return `
+    <div class="video-card ${expanded ? 'expanded' : ''}" id="card-${v.video_id}" onclick="toggleCard('${v.video_id}', event)">
+      <div class="video-channel">${v.channel_name || 'Unknown'}</div>
+      <div class="video-card-header">
+        <div class="video-card-title">${v.video_title || v.video_id}</div>
+      </div>
+      <div class="video-meta">
+        <span class="badge badge-${v.prompt_type || 'technology'}">${v.prompt_type || 'technology'}</span>
+        <span class="badge ${hasTranscript ? 'badge-transcribed' : 'badge-pending'}">${hasTranscript ? 'transcribed' : 'pending'}</span>
+        <span class="video-date">${formatDate(v.published_date || v.created_at)}</span>
+      </div>
+      <div class="video-actions" onclick="event.stopPropagation()">
+        <a href="${v.video_url}" target="_blank"><button class="btn">Watch</button></a>
+        ${!hasTranscript ? `<button class="btn btn-primary" onclick="quickTranscribe('${v.video_id}')">Transcribe</button>` : ''}
+      </div>
+      <div class="video-expanded-content">
+        ${hasSummary ? `
+          <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">SUMMARY</div>
+          <div class="summary-text">${v.summary_text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+        ` : '<div style="color:var(--muted);font-size:13px;">No summary yet.</div>'}
+        ${hasTranscript ? `
+          <div class="transcript-toggle" onclick="event.stopPropagation()">
+            <button class="btn" onclick="toggleTranscript('${v.video_id}')">Show Transcript</button>
+            <div class="transcript-box" id="transcript-${v.video_id}">${v.transcript_text}</div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function toggleCard(id, e) {
+  const card = document.getElementById(`card-${id}`);
+  if (e && e.target.closest('.video-actions')) return;
+  card.classList.toggle('expanded');
+}
+
+function toggleTranscript(id) {
+  const box = document.getElementById(`transcript-${id}`);
+  box.classList.toggle('visible');
+}
+
+async function loadDashboard() {
+  const data = await supabaseFetch('youtube_videos?order=created_at.desc&limit=100');
+  if (!Array.isArray(data)) return;
+  allVideos = data;
+  document.getElementById('stat-total').textContent = data.length;
+  document.getElementById('stat-transcribed').textContent = data.filter(v => v.transcript_text).length;
+  document.getElementById('stat-pending').textContent = data.filter(v => !v.transcript_text).length;
+  const channels = [...new Set(data.map(v => v.channel_name))];
+  document.getElementById('stat-channels').textContent = channels.length;
+  const recent = data.slice(0, 6);
+  document.getElementById('recent-videos').innerHTML = recent.length
+    ? recent.map(v => renderVideoCard(v)).join('')
+    : '<div class="empty-state">No videos yet.</div>';
+}
+
+async function loadVideos() {
+  if (!allVideos.length) {
+    const data = await supabaseFetch('youtube_videos?order=created_at.desc&limit=500');
+    if (Array.isArray(data)) allVideos = data;
+  }
+  filterVideos();
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterVideos();
+}
+
+function filterVideos() {
+  const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+  let filtered = allVideos;
+  if (currentFilter === 'market') filtered = filtered.filter(v => v.prompt_type === 'market');
+  if (currentFilter === 'technology') filtered = filtered.filter(v => v.prompt_type === 'technology');
+  if (currentFilter === 'transcribed') filtered = filtered.filter(v => v.transcript_text);
+  if (currentFilter === 'pending') filtered = filtered.filter(v => !v.transcript_text);
+  if (search) filtered = filtered.filter(v =>
+    (v.video_title || '').toLowerCase().includes(search) ||
+    (v.channel_name || '').toLowerCase().includes(search)
+  );
+  const grid = document.getElementById('videos-grid');
+  grid.innerHTML = filtered.length
+    ? filtered.map(v => renderVideoCard(v)).join('')
+    : '<div class="empty-state">No videos match your filter.</div>';
+}
+
+async function loadChannels() {
+  if (!allVideos.length) {
+    const data = await supabaseFetch('youtube_videos?order=created_at.desc&limit=500');
+    if (Array.isArray(data)) allVideos = data;
+  }
+  const channelMap = {};
+  allVideos.forEach(v => {
+    if (!channelMap[v.channel_name]) channelMap[v.channel_name] = { total: 0, transcribed: 0 };
+    channelMap[v.channel_name].total++;
+    if (v.transcript_text) channelMap[v.channel_name].transcribed++;
+  });
+  const max = Math.max(...Object.values(channelMap).map(c => c.total));
+  const html = Object.entries(channelMap)
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([name, c]) => `
+      <div class="channel-card">
+        <div class="channel-name">${name}</div>
+        <div class="channel-count">${c.total} videos · ${c.transcribed} transcribed</div>
+        <div class="channel-bar"><div class="channel-bar-fill" style="width:${Math.round(c.total/max*100)}%"></div></div>
+      </div>
+    `).join('');
+  document.getElementById('channels-grid').innerHTML = html || '<div class="empty-state">No channels yet.</div>';
+}
+
+async function triggerTranscription() {
+  const videoId = document.getElementById('video-id-input').value.trim();
+  const promptType = document.getElementById('prompt-type-select').value;
+  const statusBox = document.getElementById('transcribe-status');
+  const btn = document.getElementById('transcribe-btn');
+  if (!videoId) { statusBox.className = 'status-box error'; statusBox.textContent = 'Please enter a video ID.'; return; }
+  btn.disabled = true;
+  statusBox.className = 'status-box loading';
+  statusBox.textContent = 'Triggering GitHub Action...';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${DISPATCH_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        event_type: 'transcribe_video',
+        client_payload: { video_id: videoId, chat_id: '' }
+      })
+    });
+    if (res.status === 204) {
+      statusBox.className = 'status-box success';
+      statusBox.textContent = 'Transcription triggered! Check GitHub Actions for progress.';
+      document.getElementById('video-id-input').value = '';
+    } else {
+      const err = await res.text();
+      statusBox.className = 'status-box error';
+      statusBox.textContent = `Error ${res.status}: ${err}`;
+    }
+  } catch (e) {
+    statusBox.className = 'status-box error';
+    statusBox.textContent = `Network error: ${e.message}`;
+  }
+  btn.disabled = false;
+}
+
+async function quickTranscribe(videoId) {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Triggering...';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${DISPATCH_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ event_type: 'transcribe_video', client_payload: { video_id: videoId, chat_id: '' } })
+    });
+    btn.textContent = res.status === 204 ? 'Triggered!' : 'Error';
+  } catch(e) { btn.textContent = 'Error'; }
+}
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  el.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'videos') loadVideos();
+  if (name === 'channels') loadChannels();
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
