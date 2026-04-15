@@ -321,7 +321,7 @@
 <script>
 const SUPABASE_URL = 'https://hqtqzhtwhijlycboerra.supabase.co';
 const SUPABASE_API_KEY = 'sb_publishable_XPGFM28KVUqWg81HjNbeXw_DnjHcW7Q';
-const MAKE_WEBHOOK_URL = 'https://hook.eu2.make.com/fck8ox08ay7o8al68b4jcwznbdrfpvgk';
+const DISPATCH_TOKEN = '__DISPATCH_TOKEN__';
 const REPO = 'smart-bi-81/gitbub_action';
 
 let allVideos = [];
@@ -480,7 +480,7 @@ async function modalTranscribe(videoId) {
     const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${MAKE_WEBHOOK_URL}`,
+        'Authorization': `Bearer ${DISPATCH_TOKEN}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
@@ -621,7 +621,7 @@ async function triggerTranscription() {
     const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${MAKE_WEBHOOK_URL}`,
+        'Authorization': `Bearer ${DISPATCH_TOKEN}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
