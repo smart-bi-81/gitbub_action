@@ -20,9 +20,17 @@ jobs:
           SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
           DISPATCH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
         run: |
-          sed -i "s|__SUPABASE_URL__|${SUPABASE_URL}|g" index.html
-          sed -i "s|__SUPABASE_API_KEY__|${SUPABASE_API_KEY}|g" index.html
-          sed -i "s|__DISPATCH_TOKEN__|${DISPATCH_TOKEN}|g" index.html
+          python3 -c "
+          import os
+          with open('index.html', 'r') as f:
+              content = f.read()
+          content = content.replace('__SUPABASE_URL__', os.environ['SUPABASE_URL'])
+          content = content.replace('__SUPABASE_API_KEY__', os.environ['SUPABASE_API_KEY'])
+          content = content.replace('__DISPATCH_TOKEN__', os.environ['DISPATCH_TOKEN'])
+          with open('index.html', 'w') as f:
+              f.write(content)
+          print('Secrets injected successfully')
+          "
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
