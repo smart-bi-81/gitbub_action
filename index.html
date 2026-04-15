@@ -482,9 +482,10 @@ async function modalTranscribe(videoId) {
       body: JSON.stringify({ video_id: videoId })
     });
     if (res.ok) {
-      status.className = 'modal-trigger-status success';
-      status.textContent = '✓ Transcription triggered! Check back in a few minutes.';
-      btn.textContent = '✓ Triggered';
+      status.className = 'modal-trigger-status loading';
+      status.textContent = '⏳ Transcription in progress... checking every 10 seconds';
+      btn.textContent = '⏳ Processing...';
+      pollForTranscript(videoId, 0);
     } else {
       status.className = 'modal-trigger-status error';
       status.textContent = `Error ${res.status}`;
@@ -496,6 +497,65 @@ async function modalTranscribe(videoId) {
     status.textContent = `Network error: ${e.message}`;
     btn.disabled = false;
     btn.textContent = 'Transcribe this video';
+  }
+}
+
+async function pollForTranscript(videoId, attempts) {
+  if (attempts > 18) {
+    const status = document.getElementById('modal-trigger-status');
+    if (status) { status.className = 'modal-trigger-status error'; status.textContent = 'Timed out. Check GitHub Actions and refresh the page.'; }
+    return;
+  }
+  await new Promise(r => setTimeout(r, 10000));
+  const data = await supabaseFetch(`youtube_videos?video_id=eq.${videoId}&select=*`);
+  if (Array.isArray(data) && data.length && data[0].transcript_text) {
+    const v = data[0];
+    const idx = allVideos.findIndex(x => x.video_id === videoId);
+    if (idx >= 0) allVideos[idx] = v;
+    else allVideos.unshift(v);
+    const status = document.getElementById('modal-trigger-status');
+    if (status) { status.className = 'modal-trigger-status success'; status.textContent = '✓ Transcription complete! Summary loaded below.'; }
+    const btn = document.getElementById('modal-transcribe-btn');
+    if (btn) btn.textContent = '✓ Done';
+    const sections = document.getElementById('modal-sections');
+    if (sections && currentModalVideo) {
+      currentModalVideo = v;
+      let html = '';
+      if (v.summary_text) {
+        html += `<div class="modal-divider"></div>
+          <div class="modal-section">
+            <div class="modal-section-header" onclick="toggleModalSection('modal-summary','chevron-summary')">
+              <div class="modal-section-title">📝 Summary</div>
+              <svg class="modal-chevron open" id="chevron-summary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="modal-section-body open" id="modal-summary">
+              <div class="summary-text">${v.summary_text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+            </div>
+          </div>`;
+      }
+      if (v.transcript_text) {
+        html += `<div class="modal-divider"></div>
+          <div class="modal-section">
+            <div class="modal-section-header" onclick="toggleModalSection('modal-transcript','chevron-transcript')">
+              <div class="modal-section-title">📄 Transcript</div>
+              <svg class="modal-chevron" id="chevron-transcript" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="modal-section-body" id="modal-transcript">
+              <div class="transcript-text">${v.transcript_text}</div>
+            </div>
+          </div>`;
+      }
+      sections.innerHTML = html;
+    }
+    applyFilter(allVideos, currentFilter, 'home-grid');
+  } else {
+    const status = document.getElementById('modal-trigger-status');
+    if (status && status.classList.contains('loading')) {
+      const mins = Math.floor(((attempts+1)*10)/60);
+      const secs = ((attempts+1)*10) % 60;
+      status.textContent = `⏳ Processing... ${mins > 0 ? mins+'m ' : ''}${secs}s elapsed`;
+    }
+    pollForTranscript(videoId, attempts + 1);
   }
 }
 
