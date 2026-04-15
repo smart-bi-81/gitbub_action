@@ -321,8 +321,7 @@
 <script>
 const SUPABASE_URL = '__SUPABASE_URL__';
 const SUPABASE_API_KEY = '__SUPABASE_API_KEY__';
-const DISPATCH_TOKEN = '__DISPATCH_TOKEN__';
-const REPO = 'smart-bi-81/gitbub_action';
+const MAKE_WEBHOOK_URL = '__MAKE_WEBHOOK_URL__';
 
 let allVideos = [];
 let currentFilter = 'all';
@@ -475,25 +474,20 @@ async function modalTranscribe(videoId) {
   btn.disabled = true;
   btn.textContent = 'Triggering...';
   status.className = 'modal-trigger-status loading';
-  status.textContent = 'Triggering GitHub Action...';
+  status.textContent = 'Sending request...';
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+    const res = await fetch(MAKE_WEBHOOK_URL, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DISPATCH_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ event_type: 'transcribe_video', client_payload: { video_id: videoId, chat_id: '' } })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_id: videoId })
     });
-    if (res.status === 204) {
+    if (res.ok) {
       status.className = 'modal-trigger-status success';
-      status.textContent = '✓ Transcription triggered! Check GitHub Actions for progress.';
+      status.textContent = '✓ Transcription triggered! Check back in a few minutes.';
       btn.textContent = '✓ Triggered';
     } else {
-      const errText = await res.text();
       status.className = 'modal-trigger-status error';
-      status.textContent = `Error ${res.status}: ${errText}`;
+      status.textContent = `Error ${res.status}`;
       btn.disabled = false;
       btn.textContent = 'Transcribe this video';
     }
@@ -616,25 +610,20 @@ async function triggerTranscription() {
   if (!videoId) { statusBox.className='yt-status error'; statusBox.textContent='Please enter a video ID.'; return; }
   btn.disabled = true;
   statusBox.className = 'yt-status loading';
-  statusBox.textContent = 'Triggering GitHub Action...';
+  statusBox.textContent = 'Sending request...';
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+    const res = await fetch(MAKE_WEBHOOK_URL, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DISPATCH_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ event_type: 'transcribe_video', client_payload: { video_id: videoId, chat_id: '' } })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_id: videoId })
     });
-    if (res.status === 204) {
+    if (res.ok) {
       statusBox.className = 'yt-status success';
-      statusBox.textContent = '✓ Transcription triggered! Check GitHub Actions for progress.';
+      statusBox.textContent = '✓ Transcription triggered! Check back in a few minutes.';
       document.getElementById('video-id-input').value = '';
     } else {
-      const errText = await res.text();
       statusBox.className = 'yt-status error';
-      statusBox.textContent = `Error ${res.status}: ${errText}`;
+      statusBox.textContent = `Error ${res.status}`;
     }
   } catch(e) {
     statusBox.className = 'yt-status error';
